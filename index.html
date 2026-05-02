@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NifuScan – Manga Platformu</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Crimson+Pro:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  /* ===================== CSS VARIABLES ===================== */
+  :root {
+    --bg:        #050810;
+    --bg2:       #080d1a;
+    --navy:      #0a0f22;
+    --navy2:     #0d1530;
+    --blue:      #1a2755;
+    --accent:    #1e3a8a;
+    --glow:      #2563eb;
+    --glow2:     #3b82f6;
+    --red:       #bb1111;
+    --red2:      #e53e3e;
+    --text:      #b8ccee;
+    --text2:     #6b82aa;
+    --white:     #eef3ff;
+    --border:    rgba(30,58,138,0.35);
+    --border2:   rgba(37,99,235,0.5);
+    --card-bg:   rgba(8,13,26,0.9);
+    --modal-bg:  rgba(3,6,14,0.97);
+  }
+
+  /* ===================== RESET ===================== */
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Rajdhani',sans-serif;
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+
+  /* Animated grid overlay */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(26,39,85,0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(26,39,85,0.1) 1px, transparent 1px);
+    background-size:70px 70px;
+    pointer-events:none;
+    z-index:0;
+    animation:gridMove 25s linear infinite;
+  }
+  @keyframes gridMove {
+    0%  { background-position:0 0 }
+    100%{ background-position:70px 70px }
+  }
+
+  /* Subtle radial glow top-left */
+  body::after {
+    content:'';
+    position:fixed;
+    top:-200px; left:-200px;
+    width:700px; height:700px;
+    background:radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* ===================== SCROLLBAR ===================== */
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--accent); border-radius:3px; }
+
+  /* ===================== TYPOGRAPHY ===================== */
+  h1,h2,h3 { font-family:'Bebas Neue',sans-serif; letter-spacing:2px; }
+
+  /* ===================== OVERLAY (drawer backdrop) ===================== */
+  #overlay {
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(3px);
+    z-index:800;
+  }
+  #overlay.show { display:block; }
+
+  /* ===================== NAVBAR ===================== */
+  nav {
+    position:fixed;
+    top:0; left:0; right:0;
+    z-index:900;
+    height:64px;
+    background:rgba(5,8,16,0.95);
+    backdrop-filter:blur(18px);
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    padding:0 1.5rem;
+    gap:1rem;
+  }
+
+  /* Left: NifuScan logo */
+  .nav-brand {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-shrink:0;
+    text-decoration:none;
+  }
+  .nav-brand img {
+    height:44px;
+    width:auto;
+    object-fit:contain;
+    /* assets/nifuscan-logo.png = Ekran görüntüsü 2026-05-02 154947.png */
+    filter:drop-shadow(0 0 8px rgba(37,99,235,0.6));
+  }
+
+  /* Search bar — center */
+  .nav-search {
+    flex:1;
+    max-width:380px;
+    margin:0 auto;
+    position:relative;
+  }
+  .nav-search input {
+    width:100%;
+    background:rgba(13,21,48,0.75);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:8px 38px 8px 14px;
+    color:var(--white);
+    font-family:'Rajdhani',sans-serif;
+    font-size:14px; font-weight:600;
+    letter-spacing:.5px;
+    outline:none;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  .nav-search input:focus {
+    border-color:var(--glow);
+    box-shadow:0 0 14px rgba(37,99,235,0.25);
+  }
+  .nav-search input::placeholder { color:var(--text2); }
+  .nav-search .search-icon {
+    position:absolute; right:10px; top:50%;
+    transform:translateY(-50%);
+    color:var(--text2); font-size:15px;
+    pointer-events:none;
+  }
+
+  /* Right: login + hamburger */
+  .nav-right {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-shrink:0;
+    margin-left:auto;
+  }
+
+  .btn-user {
+    background:linear-gradient(135deg, var(--accent), var(--glow));
+    border:none; border-radius:6px;
+    padding:8px 16px;
+    color:var(--white);
+    font-family:'Rajdhani',sans-serif;
+    font-size:13px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
+    cursor:pointer;
+    transition:opacity .2s, box-shadow .2s;
+    white-space:nowrap;
+  }
+  .btn-user:hover { opacity:.85; box-shadow:0 0 16px rgba(37,99,235,0.45); }
+
+  .hamburger {
+    display:flex; flex-direction:column;
+    gap:5px; cursor:pointer; padding:6px;
+  }
+  .hamburger span {
+    display:block; width:24px; height:2px;
+    background:var(--text); border-radius:2px;
+    transition:all .3s ease;
+  }
+  .hamburger.open span:nth-child(1){ transform:translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2){ opacity:0; transform:scaleX(0); }
+  .hamburger.open span:nth-child(3){ transform:translateY(-7px) rotate(-45deg); }
+
+  /* ===================== DRAWER MENU ===================== */
+  .drawer {
+    position:fixed;
+    top:64px; right:-310px; bottom:0;
+    width:280px;
+    background:rgba(5,8,18,0.98);
+    border-left:1px solid var(--border);
+    backdrop-filter:blur(24px);
+    z-index:890;
+    transition:right .35s cubic-bezier(.4,0,.2,1);
+    display:flex; flex-direction:column;
+    padding:1.5rem 1.25rem;
+    overflow-y:auto;
+  }
+  .drawer.open { right:0; }
+
+  .drawer-title {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:11px; letter-spacing:3px;
+    color:var(--text2); text-transform:uppercase;
+    margin-bottom:.75rem;
+    padding-left:4px;
+  }
+
+  .drawer a {
+    display:flex; align-items:center; gap:10px;
+    padding:13px 14px;
+    color:var(--text);
+    text-decoration:none;
+    font-size:14px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
+    border-radius:6px;
+    border:1px solid transparent;
+    transition:all .2s;
+    margin-bottom:2px;
+  }
+  .drawer a:hover {
+    background:rgba(26,39,85,0.45);
+    border-color:var(--border);
+    color:var(--white);
+    padding-left:20px;
+  }
+  .drawer a .d-icon { font-size:16px; opacity:.7; }
+
+  .drawer-sep {
+    height:1px;
+    background:var(--border);
+    margin:1rem 0;
+  }
+
+  .drawer-bottom {
+    margin-top:auto;
+    padding-top:1rem;
+    border-top:1px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+  }
+  .drawer-bottom img {
+    height:32px; width:auto; object-fit:contain;
+    /* assets/nifuscan-logo.png */
+    filter:drop-shadow(0 0 6px rgba(37,99,235,0.5)) brightness(.9);
+  }
+  .drawer-bottom span {
+    font-size:11px; color:var(--text2);
+    letter-spacing:1px; text-transform:uppercase;
+  }
+
+  /* ===================== MAIN CONTENT ===================== */
+  main { position:relative; z-index:1; padding-top:64px; }
+
+  /* ===================== HERO SLIDER ===================== */
+  .hero {
+    position:relative;
+    height: calc(100vh - 64px);
+    min-height:520px;
+    max-height:780px;
+    overflow:hidden;
+  }
+
+  /* Blurred background image */
+  .hero-bg {
+    position:absolute; inset:0;
+    /* assets/dod-cover.jpg — Device of Disguise görseli */
+    background:url('assets/dod-cover.jpg') center/cover no-repeat;
+    filter:blur(12px) brightness(.35);
+    transform:scale(1.08);
+    transition:opacity .8s;
+  }
+
+  /* Dark gradient overlay */
+  .hero-gradient {
+    position:absolute; inset:0;
+    background:linear-gradient(
+      to bottom,
+      rgba(5,8,16,0.3) 0%,
+      rgba(5,8,16,0.6) 60%,
+      var(--bg) 100%
+    );
+  }
+
+  /* Slider track */
+  .hero-track {
+    position:relative; z-index:2;
+    height:100%;
+    display:flex;
+    transition:transform .6s cubic-bezier(.4,0,.2,1);
+  }
+
+  .hero-slide {
+    flex:0 0 100%;
+    height:100%;
+    display:flex;
+    align-items:flex-end;
+    padding:3rem 5%;
+    gap:2.5rem;
+  }
+
+  /* The combined info box (image + text) */
+  .hero-box {
+    display:flex;
+    background:rgba(8,13,26,0.82);
+    border:1px solid var(--border2);
+    border-radius:12px;
+    backdrop-filter:blur(12px);
+    overflow:hidden;
+    max-width:780px;
+    width:100%;
+    box-shadow:0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(37,99,235,0.1);
+    animation:fadeUp .7s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(24px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .hero-thumb {
+    flex-shrink:0;
+    width:160px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero-thumb img {
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+    /* First slide: assets/dod-logo.png */
+    filter:brightness(.9);
+  }
+  .hero-thumb::after {
+    content:'';
+    position:absolute; inset:0;
+    background:linear-gradient(90deg, transparent 60%, rgba(8,13,26,0.5) 100%);
+  }
+
+  .hero-info {
+    padding:1.5rem;
+    display:flex; flex-direction:column;
+    gap:.6rem;
+    justify-content:center;
+  }
+  .hero-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(187,17,17,0.2);
+    border:1px solid rgba(187,17,17,0.4);
+    border-radius:4px;
+    padding:3px 10px;
+    font-size:11px; font-weight:700;
+    letter-spacing:2px; text-transform:uppercase;
+    color:var(--red2);
+    width:fit-content;
+  }
+  .hero-title {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(1.8rem, 4vw, 2.8rem);
+    letter-spacing:3px;
+    color:var(--white);
+    line-height:1;
+  }
+  .hero-desc {
+    font-family:'Crimson Pro',serif;
+    font-size:clamp(13px,1.5vw,15px);
+    color:var(--text);
+    line-height:1.7;
+    max-width:460px;
+  }
+  .hero-btn {
+    display:inline-flex; align-items:center; gap:8px;
+    background:linear-gradient(135deg, var(--red) 0%, #8b0000 100%);
+    border:none; border-radius:6px;
+    padding:10px 20px;
+    color:var(--white);
+    font-family:'Rajdhani',sans-serif;
+    font-size:13px; font-weight:700;
+    letter-spacing:1.5px; text-transform:uppercase;
+    cursor:pointer;
+    width:fit-content;
+    transition:opacity .2s, box-shadow .2s;
+    text-decoration:none;
+  }
+  .hero-btn:hover { opacity:.85; box-shadow:0 0 20px rgba(187,17,17,0.4); }
+
+  /* Slider dots */
+  .hero-dots {
+    position:absolute;
+    bottom:1.5rem; left:50%;
+    transform:translateX(-50%);
+    z-index:5;
+    display:flex; gap:8px;
+    align-items:center;
+  }
+  .hero-dot {
+    width:8px; height:8px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.25);
+    border:none; cursor:pointer;
+    transition:all .3s;
+    padding:0;
+  }
+  .hero-dot.active {
+    background:var(--glow2);
+    box-shadow:0 0 8px rgba(59,130,246,0.7);
+    width:22px; border-radius:4px;
+  }
+
+  /* Slider arrows */
+  .hero-arrow {
+    position:absolute;
+    top:50%; transform:translateY(-50%);
+    z-index:5;
+    background:rgba(8,13,26,0.7);
+    border:1px solid var(--border);
+    border-radius:50%;
+    width:40px; height:40px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--text);
+    font-size:18px;
+    transition:all .2s;
+  }
+  .hero-arrow:hover { background:rgba(26,39,85,0.8); color:var(--white); }
+  .hero-arrow.left  { left:1.5rem; }
+  .hero-arrow.right { right:1.5rem; }
+
+  /* ===================== SECTIONS ===================== */
+  section { position:relative; z-index:1; padding:4rem 5%; }
+
+  .section-header {
+    display:flex; align-items:center; gap:1rem;
+    margin-bottom:2rem;
+  }
+  .section-header h2 {
+    font-size:clamp(1.4rem, 3vw, 2rem);
+    color:var(--white);
+  }
+  .section-line {
+    flex:1; height:1px;
+    background:linear-gradient(90deg, var(--border2) 0%, transparent 100%);
+  }
+  .section-more {
+    font-size:12px; font-weight:700;
+    letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--glow2); text-decoration:none;
+    white-space:nowrap;
+    transition:opacity .2s;
+  }
+  .section-more:hover { opacity:.7; }
+
+  /* ===================== MANGA GRID ===================== */
+  .manga-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));
+    gap:1.25rem;
+  }
+
+  .manga-card {
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    cursor:pointer;
+    transition:transform .25s, border-color .25s, box-shadow .25s;
+    text-decoration:none;
+    display:block;
+    position:relative;
+  }
+  .manga-card:hover {
+    transform:translateY(-6px);
+    border-color:var(--border2);
+    box-shadow:0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(37,99,235,0.15);
+  }
+  .manga-card:hover .manga-overlay { opacity:1; }
+
+  .manga-thumb {
+    aspect-ratio:3/4;
+    overflow:hidden;
+    background:var(--navy2);
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .manga-thumb img {
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+    transition:transform .4s;
+  }
+  .manga-card:hover .manga-thumb img { transform:scale(1.06); }
+
+  /* Not found placeholder */
+  .thumb-placeholder {
+    width:100%; height:100%;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:8px;
+    background:linear-gradient(135deg, #0a0f22 0%, #050810 100%);
+  }
+  .thumb-placeholder svg {
+    opacity:.15;
+    width:48px; height:48px;
+  }
+  .thumb-placeholder span {
+    font-size:11px; color:var(--text2);
+    letter-spacing:2px; text-transform:uppercase;
+  }
+
+  .manga-overlay {
+    position:absolute; inset:0;
+    background:linear-gradient(to top, rgba(37,99,235,0.15) 0%, transparent 60%);
+    opacity:0; transition:opacity .3s;
+  }
+
+  .manga-meta {
+    padding:.85rem .75rem .9rem;
+  }
+  .manga-name {
+    font-size:13px; font-weight:700;
+    color:var(--white);
+    letter-spacing:.5px;
+    margin-bottom:4px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .manga-name.notfound { color:var(--text2); font-style:italic; }
+  .manga-desc {
+    font-size:11px; color:var(--text2);
+    line-height:1.5;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+
+  /* Featured manga row (bigger cards) */
+  .manga-row {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+    gap:1.5rem;
+  }
+  .manga-row .manga-card .manga-thumb { aspect-ratio:2/3; }
+  .manga-row .manga-name { font-size:14px; }
+
+  /* ===================== LATEST SECTION ===================== */
+  .latest-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+    gap:1rem;
+  }
+  .latest-card {
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    display:flex; gap:1rem;
+    padding:.85rem;
+    cursor:pointer;
+    transition:border-color .2s, box-shadow .2s, transform .2s;
+    text-decoration:none;
+  }
+  .latest-card:hover {
+    border-color:var(--border2);
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    transform:translateY(-2px);
+  }
+  .latest-thumb {
+    flex-shrink:0;
+    width:52px; height:72px;
+    border-radius:5px;
+    overflow:hidden;
+    background:var(--navy2);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .latest-thumb img {
+    width:100%; height:100%; object-fit:cover;
+  }
+  .latest-thumb-placeholder {
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#0a0f22,#050810);
+  }
+  .latest-thumb-placeholder svg { opacity:.18; width:22px; height:22px; }
+  .latest-info { flex:1; min-width:0; }
+  .latest-name {
+    font-size:13px; font-weight:700;
+    color:var(--white);
+    margin-bottom:4px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .latest-name.notfound { color:var(--text2); font-style:italic; }
+  .latest-desc {
+    font-size:11px; color:var(--text2);
+    line-height:1.5;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .latest-badge {
+    font-size:10px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
+    color:var(--glow2);
+    margin-bottom:3px;
+    display:block;
+  }
+
+  /* ===================== FOOTER ===================== */
+  footer {
+    position:relative; z-index:1;
+    background:rgba(3,6,14,0.95);
+    border-top:1px solid var(--border);
+    padding:2.5rem 5%;
+    text-align:center;
+  }
+  .footer-logo {
+    margin-bottom:1rem;
+  }
+  .footer-logo img {
+    height:36px; width:auto; object-fit:contain;
+    /* assets/nifuscan-logo.png */
+    filter:brightness(.6);
+  }
+  .footer-links {
+    display:flex; flex-wrap:wrap;
+    justify-content:center; gap:1.5rem;
+    margin-bottom:1.25rem;
+  }
+  .footer-links a {
+    color:var(--text2); text-decoration:none;
+    font-size:12px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
+    transition:color .2s;
+  }
+  .footer-links a:hover { color:var(--glow2); }
+  .footer-copy {
+    font-size:12px; color:var(--text2);
+    letter-spacing:.5px;
+  }
+  .footer-copy span { color:var(--glow2); }
+
+  /* ===================== MODALS ===================== */
+  .modal-wrap {
+    display:none;
+    position:fixed; inset:0;
+    z-index:1100;
+    background:rgba(3,6,14,0.85);
+    backdrop-filter:blur(8px);
+    align-items:center; justify-content:center;
+  }
+  .modal-wrap.show { display:flex; }
+
+  .modal {
+    background:var(--navy);
+    border:1px solid var(--border2);
+    border-radius:14px;
+    width:100%; max-width:440px;
+    margin:1rem;
+    box-shadow:0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(37,99,235,0.1);
+    animation:modalIn .3s ease both;
+    overflow:hidden;
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform:scale(.94) translateY(12px); }
+    to   { opacity:1; transform:scale(1) translateY(0); }
+  }
+
+  .modal-head {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1.25rem 1.5rem;
+    border-bottom:1px solid var(--border);
+  }
+  .modal-head h3 {
+    font-size:1.3rem; color:var(--white);
+    letter-spacing:2px;
+  }
+  .modal-close {
+    background:none; border:none;
+    color:var(--text2); font-size:22px;
+    cursor:pointer; line-height:1;
+    transition:color .2s;
+  }
+  .modal-close:hover { color:var(--white); }
+
+  /* Auth tabs */
+  .auth-tabs {
+    display:flex;
+    border-bottom:1px solid var(--border);
+  }
+  .auth-tab {
+    flex:1; padding:14px;
+    text-align:center;
+    font-size:13px; font-weight:700;
+    letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--text2);
+    cursor:pointer;
+    border:none; background:none;
+    border-bottom:2px solid transparent;
+    transition:all .2s;
+  }
+  .auth-tab.active {
+    color:var(--glow2);
+    border-bottom-color:var(--glow2);
+    background:rgba(37,99,235,0.06);
+  }
+
+  .auth-panel { display:none; padding:1.5rem; }
+  .auth-panel.active { display:block; }
+
+  /* Form elements */
+  .form-group { margin-bottom:1rem; }
+  .form-group label {
+    display:block;
+    font-size:12px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
+    color:var(--text2);
+    margin-bottom:6px;
+  }
+  .form-group input,
+  .form-group select {
+    width:100%;
+    background:rgba(5,8,16,0.8);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:10px 14px;
+    color:var(--white);
+    font-family:'Rajdhani',sans-serif;
+    font-size:14px; font-weight:600;
+    outline:none;
+    transition:border-color .2s, box-shadow .2s;
+    -webkit-appearance:none;
+  }
+  .form-group input:focus,
+  .form-group select:focus {
+    border-color:var(--glow);
+    box-shadow:0 0 12px rgba(37,99,235,0.2);
+  }
+  .form-group input::placeholder { color:var(--text2); }
+  .form-group select option { background:var(--navy2); }
+
+  /* Captcha */
+  .captcha-box {
+    display:flex; align-items:center; gap:1rem;
+    background:rgba(5,8,16,0.8);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:12px 14px;
+    cursor:pointer;
+    transition:border-color .2s;
+    user-select:none;
+  }
+  .captcha-box:hover { border-color:var(--glow); }
+  .captcha-check {
+    width:20px; height:20px;
+    border:2px solid var(--text2);
+    border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+    transition:all .2s;
+    font-size:13px; color:transparent;
+  }
+  .captcha-box.checked .captcha-check {
+    background:var(--glow);
+    border-color:var(--glow);
+    color:white;
+  }
+  .captcha-label {
+    font-size:13px; font-weight:600; color:var(--text);
+  }
+  .captcha-brand {
+    margin-left:auto;
+    font-size:10px; color:var(--text2);
+    text-align:center;
+  }
+
+  .btn-submit {
+    width:100%;
+    background:linear-gradient(135deg, var(--accent), var(--glow));
+    border:none; border-radius:8px;
+    padding:12px;
+    color:var(--white);
+    font-family:'Rajdhani',sans-serif;
+    font-size:14px; font-weight:700;
+    letter-spacing:2px; text-transform:uppercase;
+    cursor:pointer;
+    transition:opacity .2s, box-shadow .2s;
+    margin-top:.5rem;
+  }
+  .btn-submit:hover { opacity:.85; box-shadow:0 0 20px rgba(37,99,235,0.4); }
+
+  .divider-or {
+    display:flex; align-items:center; gap:.75rem;
+    margin:1rem 0;
+    font-size:11px; color:var(--text2);
+    letter-spacing:1px; text-transform:uppercase;
+  }
+  .divider-or::before, .divider-or::after {
+    content:''; flex:1; height:1px;
+    background:var(--border);
+  }
+
+  .btn-nifu {
+    width:100%;
+    background:rgba(13,21,48,0.8);
+    border:1px solid var(--border2);
+    border-radius:8px;
+    padding:11px;
+    color:var(--glow2);
+    font-family:'Rajdhani',sans-serif;
+    font-size:13px; font-weight:700;
+    letter-spacing:1.5px; text-transform:uppercase;
+    cursor:pointer;
+    transition:background .2s, box-shadow .2s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-nifu:hover { background:rgba(26,39,85,0.5); box-shadow:0 0 14px rgba(37,99,235,0.2); }
+
+  /* "Feature not added" notification (no alert!) */
+  .inline-notice {
+    display:none;
+    margin-top:.75rem;
+    background:rgba(37,99,235,0.1);
+    border:1px solid rgba(37,99,235,0.3);
+    border-radius:6px;
+    padding:10px 14px;
+    font-size:13px; color:var(--glow2);
+    text-align:center;
+    letter-spacing:.5px;
+    animation:noticeIn .25s ease;
+  }
+  @keyframes noticeIn {
+    from { opacity:0; transform:translateY(-4px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .inline-notice.show { display:block; }
+
+  /* ===================== READING PROGRESS BAR ===================== */
+  #progress-bar {
+    position:fixed;
+    top:64px; left:0;
+    height:2px;
+    background:linear-gradient(90deg, var(--glow), var(--glow2));
+    width:0%;
+    z-index:850;
+    transition:width .1s linear;
+    box-shadow:0 0 8px rgba(37,99,235,0.6);
+  }
+
+  /* ===================== ANNOUNCE TICKER ===================== */
+  .ticker-wrap {
+    background:rgba(8,13,26,0.9);
+    border-bottom:1px solid var(--border);
+    padding:8px 5%;
+    overflow:hidden;
+    white-space:nowrap;
+    position:relative; z-index:2;
+  }
+  .ticker-inner {
+    display:inline-block;
+    animation:tickerScroll 30s linear infinite;
+    font-size:12px; font-weight:600;
+    letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--text2);
+  }
+  .ticker-inner span { margin:0 2rem; }
+  .ticker-inner .hi { color:var(--glow2); }
+  @keyframes tickerScroll {
+    0%   { transform:translateX(0); }
+    100% { transform:translateX(-50%); }
+  }
+
+  /* ===================== RESPONSIVE ===================== */
+  @media(max-width:640px){
+    .hero-slide { padding:2rem 4% 3rem; }
+    .hero-thumb { width:110px; }
+    .hero-title { font-size:1.5rem; }
+    .hero-desc  { font-size:12px; }
+    nav { padding:0 1rem; gap:.6rem; }
+    .nav-search { max-width:180px; }
+    .btn-user   { padding:7px 10px; font-size:12px; }
+    .manga-grid { grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); }
+    .manga-row  { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
+    section { padding:2.5rem 4%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== READING PROGRESS BAR ===== -->
+<div id="progress-bar"></div>
+
+<!-- ===== OVERLAY ===== -->
+<div id="overlay" onclick="closeAll()"></div>
+
+<!-- ===== NAVBAR ===== -->
+<nav>
+  <!-- Left: NifuScan logo -->
+  <a class="nav-brand" href="#">
+    <!-- NifuScan logosu: assets/nifuscan-logo.png (Ekran görüntüsü 2026-05-02 154947.png) -->
+    <img src="assets/nifuscan-logo.png" alt="NifuScan">
+  </a>
+
+  <!-- Center: Search -->
+  <div class="nav-search">
+    <input type="text" id="searchInput" placeholder="Manga ara..." onkeyup="handleSearch(event)">
+    <span class="search-icon">🔍</span>
+  </div>
+
+  <!-- Right: Login + Hamburger -->
+  <div class="nav-right">
+    <button class="btn-user" onclick="openModal('auth-modal')">👤 Giriş</button>
+    <div class="hamburger" id="hamburger" onclick="toggleDrawer()">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== DRAWER MENU ===== -->
+<div class="drawer" id="drawer">
+  <div class="drawer-title">Menü</div>
+  <a href="#"><span class="d-icon">🏠</span> Ana Sayfa</a>
+  <a href="#mangas"><span class="d-icon">📚</span> Mangalar</a>
+  <a href="#latest"><span class="d-icon">🆕</span> Son Eklenenler</a>
+  <a href="#"><span class="d-icon">🔥</span> Popüler</a>
+  <a href="#"><span class="d-icon">📌</span> Kategoriler</a>
+  <div class="drawer-sep"></div>
+  <div class="drawer-title">NifuTeam</div>
+  <a href="#"><span class="d-icon">ℹ️</span> Hakkında</a>
+  <a href="#"><span class="d-icon">📣</span> Duyurular</a>
+  <a href="#"><span class="d-icon">🤝</span> Ekibe Katıl</a>
+  <div class="drawer-sep"></div>
+  <div class="drawer-bottom">
+    <img src="assets/nifuscan-logo.png" alt="NifuScan">
+    <span>NifuScan v2.0 &copy; 2026</span>
+  </div>
+</div>
+
+<!-- ===== TICKER ===== -->
+<div class="ticker-wrap">
+  <span class="ticker-inner">
+    <span class="hi">🔥 YENİ</span> <span>Device of Disguise — Yeni bölüm eklendi!</span>
+    <span>⚡</span> <span>NifuScan platformuna hoş geldiniz</span>
+    <span>📢</span> <span>NifuTeam'in ilk projesi — 2025–2026</span>
+    <span class="hi">🔥 YENİ</span> <span>Device of Disguise — Yeni bölüm eklendi!</span>
+    <span>⚡</span> <span>NifuScan platformuna hoş geldiniz</span>
+    <span>📢</span> <span>NifuTeam'in ilk projesi — 2025–2026</span>
+  </span>
+</div>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+  <!-- ===== HERO SLIDER ===== -->
+  <div class="hero">
+    <!-- Blurred background — Device of Disguise görseli -->
+    <div class="hero-bg" id="heroBg"></div>
+    <div class="hero-gradient"></div>
+
+    <!-- Arrow buttons -->
+    <button class="hero-arrow left" onclick="heroSlide(-1)">&#8249;</button>
+    <button class="hero-arrow right" onclick="heroSlide(1)">&#8250;</button>
+
+    <!-- Slide track -->
+    <div class="hero-track" id="heroTrack">
+
+      <!-- SLIDE 1: Device of Disguise -->
+      <div class="hero-slide">
+        <div class="hero-box">
+          <div class="hero-thumb">
+            <!-- Device of Disguise logosu: assets/dod-logo.png (Deviceofdisguisegerceklogo.png) -->
+            <img src="assets/dod-logo.png" alt="Device of Disguise">
+          </div>
+          <div class="hero-info">
+            <div class="hero-badge">✦ Öne Çıkan</div>
+            <div class="hero-title">Device of Disguise</div>
+            <p class="hero-desc">Şeytan Kralının emriyle insanlar dünyasına inen ve dünyayı fethetmeye çalışan bir şeytanın hikâyesi — fakat bu şeytanın bir cihazı var...</p>
+            <a class="hero-btn" href="#">▶ Okumaya Başla</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 2: Not Found 1 -->
+      <div class="hero-slide">
+        <div class="hero-box">
+          <div class="hero-thumb" style="background:var(--navy2);display:flex;align-items:center;justify-content:center;">
+            <div class="thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg><span>Logo</span></div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-badge" style="color:#6b82aa;border-color:rgba(107,130,170,0.3);background:rgba(107,130,170,0.08);">◌ Yakında</div>
+            <div class="hero-title" style="color:var(--text2)">Not Found 1</div>
+            <p class="hero-desc" style="color:var(--text2)">Not Found 1</p>
+            <span class="hero-btn" style="opacity:.3;cursor:default;pointer-events:none;">▶ Yakında</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 3: Not Found 2 -->
+      <div class="hero-slide">
+        <div class="hero-box">
+          <div class="hero-thumb" style="background:var(--navy2);display:flex;align-items:center;justify-content:center;">
+            <div class="thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg><span>Logo</span></div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-badge" style="color:#6b82aa;border-color:rgba(107,130,170,0.3);background:rgba(107,130,170,0.08);">◌ Yakında</div>
+            <div class="hero-title" style="color:var(--text2)">Not Found 2</div>
+            <p class="hero-desc" style="color:var(--text2)">Not Found 2</p>
+            <span class="hero-btn" style="opacity:.3;cursor:default;pointer-events:none;">▶ Yakında</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 4: Not Found 3 -->
+      <div class="hero-slide">
+        <div class="hero-box">
+          <div class="hero-thumb" style="background:var(--navy2);display:flex;align-items:center;justify-content:center;">
+            <div class="thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg><span>Logo</span></div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-badge" style="color:#6b82aa;border-color:rgba(107,130,170,0.3);background:rgba(107,130,170,0.08);">◌ Yakında</div>
+            <div class="hero-title" style="color:var(--text2)">Not Found 3</div>
+            <p class="hero-desc" style="color:var(--text2)">Not Found 3</p>
+            <span class="hero-btn" style="opacity:.3;cursor:default;pointer-events:none;">▶ Yakında</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 5: Not Found 4 -->
+      <div class="hero-slide">
+        <div class="hero-box">
+          <div class="hero-thumb" style="background:var(--navy2);display:flex;align-items:center;justify-content:center;">
+            <div class="thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg><span>Logo</span></div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-badge" style="color:#6b82aa;border-color:rgba(107,130,170,0.3);background:rgba(107,130,170,0.08);">◌ Yakında</div>
+            <div class="hero-title" style="color:var(--text2)">Not Found 4</div>
+            <p class="hero-desc" style="color:var(--text2)">Not Found 4</p>
+            <span class="hero-btn" style="opacity:.3;cursor:default;pointer-events:none;">▶ Yakında</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 6: Not Found 5 -->
+      <div class="hero-slide">
+        <div class="hero-box">
+          <div class="hero-thumb" style="background:var(--navy2);display:flex;align-items:center;justify-content:center;">
+            <div class="thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg><span>Logo</span></div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-badge" style="color:#6b82aa;border-color:rgba(107,130,170,0.3);background:rgba(107,130,170,0.08);">◌ Yakında</div>
+            <div class="hero-title" style="color:var(--text2)">Not Found 5</div>
+            <p class="hero-desc" style="color:var(--text2)">Not Found 5</p>
+            <span class="hero-btn" style="opacity:.3;cursor:default;pointer-events:none;">▶ Yakında</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 6: Not Found 6 -->
+      <div class="hero-slide">
+        <div class="hero-box">
+          <div class="hero-thumb" style="background:var(--navy2);display:flex;align-items:center;justify-content:center;">
+            <div class="thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg><span>Logo</span></div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-badge" style="color:#6b82aa;border-color:rgba(107,130,170,0.3);background:rgba(107,130,170,0.08);">◌ Yakında</div>
+            <div class="hero-title" style="color:var(--text2)">Not Found 6</div>
+            <p class="hero-desc" style="color:var(--text2)">Not Found 6</p>
+            <span class="hero-btn" style="opacity:.3;cursor:default;pointer-events:none;">▶ Yakında</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /hero-track -->
+
+    <!-- Dots -->
+    <div class="hero-dots" id="heroDots"></div>
+  </div><!-- /hero -->
+
+  <!-- ===== MANGA LİSTESİ ===== -->
+  <section id="mangas">
+    <div class="section-header">
+      <h2>📚 Mangalar</h2>
+      <div class="section-line"></div>
+      <a class="section-more" href="#">Tümü →</a>
+    </div>
+    <div class="manga-row">
+
+      <!-- MANGA 1: Device of Disguise -->
+      <a class="manga-card" href="#">
+        <div class="manga-thumb">
+          <!-- Device of Disguise logosu: assets/dod-logo.png -->
+          <img src="assets/dod-logo.png" alt="Device of Disguise">
+          <div class="manga-overlay"></div>
+        </div>
+        <div class="manga-meta">
+          <div class="manga-name">Device of Disguise</div>
+          <div class="manga-desc">Şeytan Kralının emriyle insanlar dünyasına inen ve dünyayı fethetmeye çalışan bir şeytanın hikâyesi — fakat bu şeytanın bir cihazı var...</div>
+        </div>
+      </a>
+
+      <!-- MANGA 2: Not Found 7 -->
+      <a class="manga-card" href="#">
+        <div class="manga-thumb">
+          <div class="thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+            <span>Not Found 7</span>
+          </div>
+          <div class="manga-overlay"></div>
+        </div>
+        <div class="manga-meta">
+          <div class="manga-name notfound">Not Found 7</div>
+          <div class="manga-desc">Not Found 7</div>
+        </div>
+      </a>
+
+      <!-- MANGA 3: Not Found 8 -->
+      <a class="manga-card" href="#">
+        <div class="manga-thumb">
+          <div class="thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+            <span>Not Found 8</span>
+          </div>
+          <div class="manga-overlay"></div>
+        </div>
+        <div class="manga-meta">
+          <div class="manga-name notfound">Not Found 8</div>
+          <div class="manga-desc">Not Found 8</div>
+        </div>
+      </a>
+
+      <!-- MANGA 4: Not Found 9 -->
+      <a class="manga-card" href="#">
+        <div class="manga-thumb">
+          <div class="thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+            <span>Not Found 9</span>
+          </div>
+          <div class="manga-overlay"></div>
+        </div>
+        <div class="manga-meta">
+          <div class="manga-name notfound">Not Found 9</div>
+          <div class="manga-desc">Not Found 9</div>
+        </div>
+      </a>
+
+      <!-- MANGA 5: Not Found 10 -->
+      <a class="manga-card" href="#">
+        <div class="manga-thumb">
+          <div class="thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+            <span>Not Found 10</span>
+          </div>
+          <div class="manga-overlay"></div>
+        </div>
+        <div class="manga-meta">
+          <div class="manga-name notfound">Not Found 10</div>
+          <div class="manga-desc">Not Found 10</div>
+        </div>
+      </a>
+
+      <!-- MANGA 6: Not Found 11 -->
+      <a class="manga-card" href="#">
+        <div class="manga-thumb">
+          <div class="thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+            <span>Not Found 11</span>
+          </div>
+          <div class="manga-overlay"></div>
+        </div>
+        <div class="manga-meta">
+          <div class="manga-name notfound">Not Found 11</div>
+          <div class="manga-desc">Not Found 11</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ===== SON EKLENENLER ===== -->
+  <section id="latest" style="padding-top:1rem;">
+    <div class="section-header">
+      <h2>🆕 Son Eklenenler</h2>
+      <div class="section-line"></div>
+      <a class="section-more" href="#">Tümü →</a>
+    </div>
+    <div class="latest-grid">
+
+      <!-- LATEST 1: Not Found 13 -->
+      <a class="latest-card" href="#">
+        <div class="latest-thumb">
+          <div class="latest-thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+          </div>
+        </div>
+        <div class="latest-info">
+          <span class="latest-badge">Not Found 13</span>
+          <div class="latest-name notfound">Not Found 13</div>
+          <div class="latest-desc">Not Found 13</div>
+        </div>
+      </a>
+
+      <!-- LATEST 2: Not Found 14 -->
+      <a class="latest-card" href="#">
+        <div class="latest-thumb">
+          <div class="latest-thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+          </div>
+        </div>
+        <div class="latest-info">
+          <span class="latest-badge">Not Found 14</span>
+          <div class="latest-name notfound">Not Found 14</div>
+          <div class="latest-desc">Not Found 14</div>
+        </div>
+      </a>
+
+      <!-- LATEST 3: Not Found 15 -->
+      <a class="latest-card" href="#">
+        <div class="latest-thumb">
+          <div class="latest-thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+          </div>
+        </div>
+        <div class="latest-info">
+          <span class="latest-badge">Not Found 15</span>
+          <div class="latest-name notfound">Not Found 15</div>
+          <div class="latest-desc">Not Found 15</div>
+        </div>
+      </a>
+
+      <!-- LATEST 4: Not Found 16 -->
+      <a class="latest-card" href="#">
+        <div class="latest-thumb">
+          <div class="latest-thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+          </div>
+        </div>
+        <div class="latest-info">
+          <span class="latest-badge">Not Found 16</span>
+          <div class="latest-name notfound">Not Found 16</div>
+          <div class="latest-desc">Not Found 16</div>
+        </div>
+      </a>
+
+      <!-- LATEST 5: Not Found 17 -->
+      <a class="latest-card" href="#">
+        <div class="latest-thumb">
+          <div class="latest-thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+          </div>
+        </div>
+        <div class="latest-info">
+          <span class="latest-badge">Not Found 17</span>
+          <div class="latest-name notfound">Not Found 17</div>
+          <div class="latest-desc">Not Found 17</div>
+        </div>
+      </a>
+
+      <!-- LATEST 6: Not Found 18 -->
+      <a class="latest-card" href="#">
+        <div class="latest-thumb">
+          <div class="latest-thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+          </div>
+        </div>
+        <div class="latest-info">
+          <span class="latest-badge">Not Found 18</span>
+          <div class="latest-name notfound">Not Found 18</div>
+          <div class="latest-desc">Not Found 18</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="footer-logo">
+    <img src="assets/nifuscan-logo.png" alt="NifuScan">
+  </div>
+  <div class="footer-links">
+    <a href="#">Ana Sayfa</a>
+    <a href="#mangas">Mangalar</a>
+    <a href="#latest">Son Eklenenler</a>
+    <a href="#">Kategoriler</a>
+    <a href="#">Hakkında</a>
+    <a href="#">İletişim</a>
+  </div>
+  <p class="footer-copy">
+    &copy; <span>2026</span> NifuScan — NifuTeam tarafından geliştirilmiştir.
+    Tüm hakları saklıdır.
+  </p>
+</footer>
+
+<!-- ===== AUTH MODAL ===== -->
+<div class="modal-wrap" id="auth-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Hesap</h3>
+      <button class="modal-close" onclick="closeModal('auth-modal')">&times;</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Oturum Aç</button>
+      <button class="auth-tab" onclick="switchTab('register')">Kayıt Ol</button>
+    </div>
+
+    <!-- LOGIN PANEL -->
+    <div class="auth-panel active" id="panel-login">
+      <div class="form-group">
+        <label>Kullanıcı Adı</label>
+        <input type="text" placeholder="kullanıcı adın">
+      </div>
+      <div class="form-group">
+        <label>Şifre</label>
+        <input type="password" placeholder="••••••••">
+      </div>
+      <button class="btn-submit">Giriş Yap</button>
+      <div class="divider-or">veya</div>
+      <button class="btn-nifu" onclick="showNifuNotice('login-nifu-notice')">
+        ✦ Nifu Hesabıyla Bağlan
+      </button>
+      <div class="inline-notice" id="login-nifu-notice">
+        Bu özellik henüz eklenmedi.
+      </div>
+    </div>
+
+    <!-- REGISTER PANEL -->
+    <div class="auth-panel" id="panel-register">
+      <div class="form-group">
+        <label>Kullanıcı Adı</label>
+        <input type="text" placeholder="bir kullanıcı adı seç">
+      </div>
+      <div class="form-group">
+        <label>Şifre</label>
+        <input type="password" placeholder="güçlü bir şifre seç">
+      </div>
+      <div class="form-group">
+        <label>Cinsiyet</label>
+        <select>
+          <option value="" disabled selected>Seçiniz...</option>
+          <option value="male">Erkek</option>
+          <option value="female">Kadın</option>
+          <option value="other">Diğer</option>
+          <option value="no">Belirtmek istemiyorum</option>
+        </select>
+      </div>
+      <!-- Bot Doğrulama -->
+      <div class="form-group">
+        <label>Bot Doğrulama</label>
+        <div class="captcha-box" id="captchaBox" onclick="toggleCaptcha()">
+          <div class="captcha-check" id="captchaCheck"></div>
+          <span class="captcha-label">Robot değilim</span>
+          <div class="captcha-brand">🛡️<br><small>NifuVerify</small></div>
+        </div>
+      </div>
+      <button class="btn-submit">Kayıt Ol</button>
+      <div class="divider-or">veya</div>
+      <button class="btn-nifu" onclick="showNifuNotice('register-nifu-notice')">
+        ✦ Nifu Hesabıyla Bağlan
+      </button>
+      <div class="inline-notice" id="register-nifu-notice">
+        Bu özellik henüz eklenmedi.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+  /* ---- HERO SLIDER ---- */
+  const HERO_TOTAL   = 7;       // 1 DoD + 6 Not Found
+  let   heroIndex    = 0;
+  let   heroTimer    = null;
+
+  // Build dots
+  const dotsEl = document.getElementById('heroDots');
+  for(let i=0; i<HERO_TOTAL; i++){
+    const d = document.createElement('button');
+    d.className = 'hero-dot' + (i===0?' active':'');
+    d.setAttribute('aria-label','Slayt '+(i+1));
+    d.onclick = ()=>{ gotoSlide(i); resetTimer(); };
+    dotsEl.appendChild(d);
+  }
+
+  function gotoSlide(n){
+    heroIndex = (n + HERO_TOTAL) % HERO_TOTAL;
+    document.getElementById('heroTrack').style.transform =
+      'translateX(-' + (heroIndex * 100) + '%)';
+    document.querySelectorAll('.hero-dot').forEach((d,i)=>{
+      d.classList.toggle('active', i===heroIndex);
+    });
+  }
+  function heroSlide(dir){ gotoSlide(heroIndex+dir); resetTimer(); }
+  function resetTimer(){
+    clearInterval(heroTimer);
+    heroTimer = setInterval(()=>{ gotoSlide(heroIndex+1); }, 5000);
+  }
+  resetTimer();
+
+  /* ---- DRAWER ---- */
+  function toggleDrawer(){
+    const d = document.getElementById('drawer');
+    const h = document.getElementById('hamburger');
+    const o = document.getElementById('overlay');
+    const open = d.classList.toggle('open');
+    h.classList.toggle('open', open);
+    o.classList.toggle('show', open);
+  }
+  function closeAll(){
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('hamburger').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  /* ---- MODALS ---- */
+  function openModal(id){
+    document.getElementById(id).classList.add('show');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('show');
+  }
+  // Close modal on backdrop click
+  document.querySelectorAll('.modal-wrap').forEach(w=>{
+    w.addEventListener('click', e=>{ if(e.target===w) w.classList.remove('show'); });
+  });
+  // Close on Escape
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){
+      document.querySelectorAll('.modal-wrap.show').forEach(w=>w.classList.remove('show'));
+      closeAll();
+    }
+  });
+
+  /* ---- AUTH TABS ---- */
+  function switchTab(tab){
+    document.querySelectorAll('.auth-tab').forEach((t,i)=>{
+      t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1));
+    });
+    document.getElementById('panel-login').classList.toggle('active', tab==='login');
+    document.getElementById('panel-register').classList.toggle('active', tab==='register');
+    // Hide notices when switching
+    document.querySelectorAll('.inline-notice').forEach(n=>n.classList.remove('show'));
+  }
+
+  /* ---- NIFU ACCOUNT NOTICE (no alert!) ---- */
+  function showNifuNotice(id){
+    const el = document.getElementById(id);
+    // Hide all notices first
+    document.querySelectorAll('.inline-notice').forEach(n=>n.classList.remove('show'));
+    el.classList.add('show');
+    // Auto-hide after 4 seconds
+    setTimeout(()=>{ el.classList.remove('show'); }, 4000);
+  }
+
+  /* ---- CAPTCHA (fake) ---- */
+  function toggleCaptcha(){
+    const box = document.getElementById('captchaBox');
+    const chk = document.getElementById('captchaCheck');
+    const checked = box.classList.toggle('checked');
+    chk.textContent = checked ? '✓' : '';
+  }
+
+  /* ---- SEARCH ---- */
+  function handleSearch(e){
+    if(e.key==='Enter'){
+      const q = document.getElementById('searchInput').value.trim();
+      if(q) console.log('Arama:', q); // Gerçek arama buraya bağlanacak
+    }
+  }
+
+  /* ---- READING PROGRESS BAR ---- */
+  window.addEventListener('scroll', ()=>{
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? (scrollTop / docHeight * 100) : 0;
+    document.getElementById('progress-bar').style.width = pct + '%';
+  });
+
+  /* ---- NAVBAR SHADOW on scroll ---- */
+  window.addEventListener('scroll', ()=>{
+    const nav = document.querySelector('nav');
+    nav.style.boxShadow = window.scrollY > 10
+      ? '0 4px 30px rgba(0,0,0,0.5)'
+      : '';
+  });
+</script>
+</body>
+</html>
